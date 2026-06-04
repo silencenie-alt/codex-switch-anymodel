@@ -36,9 +36,9 @@ The complete setup consists of four simple steps:
 4. Restart Codex, and you can use your custom model
 ```
 
-![alt text](image-1.png)
+![alt text](image-3.png)
 
-![alt text](image.png)
+![alt text](image-2.png)
 
 ---
 

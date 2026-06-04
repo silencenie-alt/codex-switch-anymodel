@@ -36,9 +36,9 @@ Codex (VS Code)                 codex-switch-anymodel                    上游 
 4. 重启codex，即可使用自定义模型
 ```
 
-![alt text](image-1.png)
+![alt text](image-3.png)
 
-![alt text](image.png)
+![alt text](image-2.png)
 
 ---
 
