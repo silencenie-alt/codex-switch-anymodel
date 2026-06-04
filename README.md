@@ -31,8 +31,14 @@ Codex (VS Code)                 codex-switch-anymodel                    上游 
           ↓
 2. 启动本代理服务
           ↓
-3. 在 VS Code 的 Codex 设置中将 API 地址指向本代理
+3. 在 CC Switch 中添加自定义配置
+          ↓
+4. 重启codex，即可使用自定义模型
 ```
+
+![alt text](image-1.png)
+
+![alt text](image.png)
 
 ---
 

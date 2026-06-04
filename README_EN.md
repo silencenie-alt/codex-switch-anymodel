@@ -24,15 +24,21 @@ Codex (VS Code)                 codex-switch-anymodel                    Upstrea
 
 ## 🚀 Workflow
 
-The complete setup consists of three simple steps:
+The complete setup consists of four simple steps:
 
 ```
 1. Configure .env (enter your upstream API key and model)
           ↓
 2. Start the proxy service
           ↓
-3. Point Codex in VS Code settings to the local proxy
+3. Add custom configuration in CC Switch
+          ↓
+4. Restart Codex, and you can use your custom model
 ```
+
+![alt text](image-1.png)
+
+![alt text](image.png)
 
 ---
 
