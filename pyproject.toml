@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codex-switch-anymodel"
+version = "1.0.0"
+description = "将任意 Chat Completions API 模型转换为 OpenAI Responses API，让 Codex CLI 使用任意模型"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "codex-switch-anymodel contributors"},
+]
+
+requires-python = ">=3.10"
+dependencies = [
+    "uvicorn>=0.27.0",
+    "starlette>=0.36.0",
+    "httpx>=0.27.0",
+    "loguru>=0.7.0",
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+]
+
+[project.scripts]
+codex-switch = "src.main:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src", "src.*"]
