@@ -4,42 +4,44 @@
 
 ---
 
-Convert any **Chat Completions API** compatible model to **OpenAI Responses API**, enabling **Codex CLI** to use any large language model.
+Convert any **Chat Completions API** compatible model to **OpenAI Responses API**, enabling **Codex** (VS Code AI coding assistant) to use any large language model.
 
 ## 📖 Introduction
 
-Codex CLI uses OpenAI's latest **Responses API** (`v1/responses`) protocol, while most LLM providers (DeepSeek, Qwen, GLM, Claude, etc.) only offer the standard **Chat Completions API** (`v1/chat/completions`) or OpenAI-compatible endpoints.
+**Codex** is the AI coding assistant in VS Code (part of GitHub Copilot), which uses OpenAI's latest **Responses API** (`v1/responses`) protocol. However, most LLM providers (DeepSeek, Qwen, GLM, Claude, etc.) only offer the standard **Chat Completions API** (`v1/chat/completions`) or OpenAI-compatible endpoints, which cannot be directly used by Codex.
 
 This project runs a protocol translation proxy locally, bridging the gap seamlessly:
 
 ```
-Codex CLI                      codex-switch-anymodel                    Upstream API
+Codex (VS Code)                 codex-switch-anymodel                    Upstream API
 ┌──────────┐    Responses API   ┌────────────────┐   Chat Completions API  ┌──────────┐
 │          │ ──────────────────▶│                │ ──────────────────────▶│          │
 │  Codex   │                    │  Local Proxy   │                        │  DeepSeek │
-│   CLI    │◀──────────────────│                │◀──────────────────────│   Qwen    │
+│ (VS Code)│◀──────────────────│                │◀──────────────────────│   Qwen    │
 │          │    Responses API   │  port: 11435   │   Chat Completions API │   GLM     │
 └──────────┘                    └────────────────┘                        └──────────┘
 ```
 
-## ✨ Features
+## 🚀 Workflow
 
-- **Protocol Translation**: Full conversion from Responses API to Chat Completions API
-- **Streaming Support**: Real-time SSE event translation with `output_text.delta`, `reasoning_text.delta`, `function_call_arguments.delta`
-- **Non-streaming Support**: Both streaming and non-streaming modes supported
-- **Tool Calling**: `function_call` / `function_call_output` ↔ assistant `tool_calls` / `tool` message
-- **Reasoning Content**: Full `reasoning_content` preservation with cross-turn auto-recovery
-- **Thinking Mode**: `thinking` / `reasoning` parameter passthrough
-- **Parameter Passthrough**: `temperature`, `top_p`, `max_output_tokens`, `tools`, `tool_choice`
-- **Multimodal Tracking**: `input_image` / `input_file` / `input_audio` skip & count
-- **Fine-grained Logging**: loguru-powered, colored console + file rotation, REQUESTUEST / RESP / TOKS levels
-- **Flexible Configuration**: .env file + environment variables, works with any upstream API
+The complete setup consists of three simple steps:
+
+```
+1. Configure .env (enter your upstream API key and model)
+          ↓
+2. Start the proxy service
+          ↓
+3. Point Codex in VS Code settings to the local proxy
+```
+
+---
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
 - Python >= 3.10
+- VS Code (with GitHub Copilot / Codex extension installed)
 
 ### 1. Install
 
@@ -52,7 +54,7 @@ cd codex-switch-anymodel
 pip install -e .
 ```
 
-### 2. Configure
+### 2. Configure Upstream API
 
 Copy the environment template and edit:
 
@@ -60,13 +62,13 @@ Copy the environment template and edit:
 cp .env_example .env
 ```
 
-Edit `.env`:
+Edit `.env` with your upstream model information:
 
 ```ini
-# Upstream API key
-api_key=sk-your-api-key
+# Upstream API key (e.g., DeepSeek)
+api_key=sk-your-deepseek-api-key
 
-# Upstream API base URL (any Chat Completions API)
+# Upstream API base URL
 base_url=https://api.deepseek.com
 
 # Default model name
@@ -76,37 +78,91 @@ model=deepseek-chat
 port=11435
 ```
 
-### 3. Start
+> **Switching models**: Just change `base_url` and `model` to use a different provider:
+> - **Qwen (Tongyi Qianwen)**: `base_url=https://dashscope.aliyuncs.com/compatible-mode/v1`, `model=qwen-plus`
+> - **GLM (Zhipu AI)**: `base_url=https://open.bigmodel.cn/api/paas/v4`, `model=glm-4-flash`
+
+### 3. Start the Proxy
 
 ```bash
-# Start directly
+# Option 1: Direct start
 codex-switch
 
-# Or use Python module
+# Option 2: Python module
 python -m src.main
 
-# Or use uvicorn directly
+# Option 3: uvicorn
 uvicorn src.main:app --host 127.0.0.1 --port 11435
 ```
 
-### 4. Configure Codex CLI
+Successful startup output:
 
-Point Codex CLI to the local proxy:
+```
+[ OK     ] codex-switch-anymodel starting...
+[INFO    ] listen: http://127.0.0.1:11435/v1/responses
+[INFO    ] model: deepseek-chat
+[INFO    ] upstream: https://api.deepseek.com
+```
+
+### 4. Configure Codex in VS Code
+
+#### Method 1: VS Code Settings UI (Recommended)
+
+1. Open VS Code
+2. Go to Settings (`Cmd + ,` or `Ctrl + ,`)
+3. Search for `codex` or `github.copilot`
+4. Find and modify:
+
+| Setting | Value |
+|---------|-------|
+| `codex.apiBase` or `github.copilot.codex.apiBase` | `http://127.0.0.1:11435` |
+| `codex.apiKey` or `github.copilot.codex.apiKey` | `not-needed` |
+
+#### Method 2: VS Code settings.json
+
+Add to your VS Code `settings.json`:
+
+```json
+{
+  "codex.apiBase": "http://127.0.0.1:11435",
+  "codex.apiKey": "not-needed"
+}
+```
+
+#### Method 3: Environment Variables
 
 ```bash
-# Codex CLI environment variables
 export CODEX_API_BASE=http://127.0.0.1:11435
 export CODEX_API_KEY=not-needed
 ```
 
-Or in your Codex CLI config file:
+> **Note**: The exact setting names may vary slightly depending on your Codex/Copilot version. The key point is to set the API Base URL to `http://127.0.0.1:11435`.
 
-```json
-{
-  "apiBase": "http://127.0.0.1:11435",
-  "apiKey": "not-needed"
-}
+### 5. Verify
+
+Open the Codex chat panel in VS Code and send a message. The proxy terminal will show request logs:
+
 ```
+[REQUEST ] thinking:off msgs:2 stream:true | Hello
+[INFO    ] SSE start: resp_xxxxxx
+[RESPONSE] text output: 65 chars
+[ OK     ] SSE done: resp_xxxxxx
+```
+
+---
+
+## ✨ Features
+
+- **Protocol Translation**: Full conversion from Responses API to Chat Completions API
+- **Streaming Support**: Real-time SSE event translation with `output_text.delta`, `reasoning_text.delta`, `function_call_arguments.delta`
+- **Non-streaming Support**: Both streaming and non-streaming modes supported
+- **Tool Calling**: `function_call` / `function_call_output` ↔ assistant `tool_calls` / `tool` message
+- **Reasoning Content**: Full `reasoning_content` preservation with cross-turn auto-recovery
+- **Thinking Mode**: `thinking` / `reasoning` parameter passthrough
+- **Parameter Passthrough**: `temperature`, `top_p`, `max_output_tokens`, `tools`, `tool_choice`
+- **Multimodal Tracking**: `input_image` / `input_file` / `input_audio` skip & count
+- **Fine-grained Logging**: loguru-powered, colored console + file rotation, REQUEST / RESPONSE / TOKS levels
+- **Flexible Configuration**: .env file + environment variables, works with any upstream API
 
 ## 🔧 Configuration
 

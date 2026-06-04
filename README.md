@@ -4,23 +4,152 @@
 
 ---
 
-将任意 **Chat Completions API** 兼容的模型转换为 **OpenAI Responses API**，让 **Codex CLI** 可以使用任意大语言模型。
+将任意 **Chat Completions API** 兼容的模型转换为 **OpenAI Responses API**，让 **Codex**（VS Code AI 编程助手）可以使用任意大语言模型。
 
 ## 📖 简介
 
-Codex CLI 使用 OpenAI 最新的 **Responses API**（`v1/responses`）协议，而绝大多数大模型厂商（DeepSeek、通义千问、GLM、Claude 等）仅提供标准的 **Chat Completions API**（`v1/chat/completions`）或 OpenAI 兼容接口。
+**Codex** 是 VS Code 中的 AI 编程助手（GitHub Copilot 的一部分），它使用 OpenAI 最新的 **Responses API**（`v1/responses`）协议。而绝大多数大模型厂商（DeepSeek、通义千问、GLM、Claude 等）仅提供标准的 **Chat Completions API**（`v1/chat/completions`）或 OpenAI 兼容接口，无法直接接入 Codex。
 
 本项目在本地启动一个协议翻译代理，无缝地在两者之间转换：
 
 ```
-Codex CLI                      codex-switch-anymodel                    上游 API
+Codex (VS Code)                 codex-switch-anymodel                    上游 API
 ┌──────────┐    Responses API   ┌────────────────┐   Chat Completions API  ┌──────────┐
 │          │ ──────────────────▶│                │ ──────────────────────▶│          │
 │  Codex   │                    │  本地代理服务   │                        │  DeepSeek │
-│   CLI    │◀──────────────────│                │◀──────────────────────│  通义千问  │
+│ (VS Code)│◀──────────────────│                │◀──────────────────────│  通义千问  │
 │          │    Responses API   │  port: 11435   │   Chat Completions API │   GLM    │
 └──────────┘                    └────────────────┘                        └──────────┘
 ```
+
+## 🚀 使用流程
+
+整个使用流程分为三步：
+
+```
+1. 配置 .env（填入上游 API 密钥和模型）
+          ↓
+2. 启动本代理服务
+          ↓
+3. 在 VS Code 的 Codex 设置中将 API 地址指向本代理
+```
+
+---
+
+## 🚀 快速开始
+
+### 前置要求
+
+- Python >= 3.10
+- VS Code（已安装 GitHub Copilot / Codex 扩展）
+
+### 1. 安装
+
+```bash
+# 克隆仓库
+git clone https://github.com/your-username/codex-switch-anymodel.git
+cd codex-switch-anymodel
+
+# 安装依赖
+pip install -e .
+```
+
+### 2. 配置上游 API
+
+复制环境变量模板并编辑：
+
+```bash
+cp .env_example .env
+```
+
+编辑 `.env` 文件，填入你想要使用的上游模型信息：
+
+```ini
+# 上游 API 密钥（以 DeepSeek 为例）
+api_key=sk-your-deepseek-api-key
+
+# 上游 API 地址
+base_url=https://api.deepseek.com
+
+# 默认模型
+model=deepseek-chat
+
+# 本地代理端口
+port=11435
+```
+
+> **切换其他模型**：只需修改 `base_url` 和 `model` 即可切换到其他提供商，例如：
+> - **通义千问 Qwen**：`base_url=https://dashscope.aliyuncs.com/compatible-mode/v1`，`model=qwen-plus`
+> - **智谱 GLM**：`base_url=https://open.bigmodel.cn/api/paas/v4`，`model=glm-4-flash`
+
+### 3. 启动代理服务
+
+```bash
+# 方式一：直接启动
+codex-switch
+
+# 方式二：使用 Python 模块
+python -m src.main
+
+# 方式三：使用 uvicorn
+uvicorn src.main:app --host 127.0.0.1 --port 11435
+```
+
+启动成功后，终端会显示：
+
+```
+[ OK     ] codex-switch-anymodel starting...
+[INFO    ] listen: http://127.0.0.1:11435/v1/responses
+[INFO    ] model: deepseek-chat
+[INFO    ] upstream: https://api.deepseek.com
+```
+
+### 4. 配置 VS Code 中的 Codex
+
+#### 方法一：VS Code 设置界面（推荐）
+
+1. 打开 VS Code
+2. 进入设置（`Cmd + ,` 或 `Ctrl + ,`）
+3. 搜索 `codex` 或 `github.copilot`
+4. 找到以下设置项并修改：
+
+| 设置项 | 值 |
+|--------|-----|
+| `codex.apiBase` 或 `github.copilot.codex.apiBase` | `http://127.0.0.1:11435` |
+| `codex.apiKey` 或 `github.copilot.codex.apiKey` | `not-needed` |
+
+#### 方法二：VS Code settings.json
+
+在 VS Code 的 `settings.json` 中添加：
+
+```json
+{
+  "codex.apiBase": "http://127.0.0.1:11435",
+  "codex.apiKey": "not-needed"
+}
+```
+
+#### 方法三：环境变量
+
+```bash
+export CODEX_API_BASE=http://127.0.0.1:11435
+export CODEX_API_KEY=not-needed
+```
+
+> **注意**：不同版本的 Codex / Copilot 设置项名称可能略有差异，请以你的 VS Code 中实际显示的为准。关键是将 API Base URL 指向 `http://127.0.0.1:11435`。
+
+### 5. 验证
+
+配置完成后，在 VS Code 中打开 Codex 聊天窗口，发送一条消息。本代理的终端会打印出请求日志：
+
+```
+[REQUEST ] thinking:off msgs:2 stream:true | 你好
+[INFO    ] SSE start: resp_xxxxxx
+[RESPONSE] text output: 65 chars
+[ OK     ] SSE done: resp_xxxxxx
+```
+
+---
 
 ## ✨ 功能
 
@@ -34,79 +163,6 @@ Codex CLI                      codex-switch-anymodel                    上游 A
 - **多模态标记**：`input_image` / `input_file` / `input_audio` 跳过统计
 - **精细日志**：loguru 驱动，彩色控制台 + 文件轮转，区分 REQUEST / RESPONSE / TOKS
 - **灵活配置**：.env 文件 + 环境变量，支持任意上游 API
-
-## 🚀 快速开始
-
-### 前置要求
-
-- Python >= 3.10
-
-### 1. 安装
-
-```bash
-# 克隆仓库
-git clone https://github.com/your-username/codex-switch-anymodel.git
-cd codex-switch-anymodel
-
-# 安装依赖
-pip install -e .
-```
-
-### 2. 配置
-
-复制环境变量模板并编辑：
-
-```bash
-cp .env_example .env
-```
-
-编辑 `.env` 文件：
-
-```ini
-# 上游 API 密钥
-api_key=sk-your-api-key
-
-# 上游 API 地址（支持任意 Chat Completions API）
-base_url=https://api.deepseek.com
-
-# 默认模型
-model=deepseek-chat
-
-# 本地代理端口
-port=11435
-```
-
-### 3. 启动
-
-```bash
-# 直接启动
-codex-switch
-
-# 或使用 Python 模块
-python -m src.main
-
-# 或使用 uvicorn 直接启动
-uvicorn src.main:app --host 127.0.0.1 --port 11435
-```
-
-### 4. 配置 Codex CLI
-
-将 Codex CLI 的 API 端点和密钥指向本地代理：
-
-```bash
-# Codex CLI 使用环境变量配置
-export CODEX_API_BASE=http://127.0.0.1:11435
-export CODEX_API_KEY=not-needed  # 本地代理不需要密钥
-```
-
-或者在你的 Codex CLI 配置文件中设置：
-
-```json
-{
-  "apiBase": "http://127.0.0.1:11435",
-  "apiKey": "not-needed"
-}
-```
 
 ## 🔧 配置详解
 
